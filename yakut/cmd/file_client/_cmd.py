@@ -17,7 +17,6 @@ from yakut.main import AliasedGroup
 from yakut.ui import show_error
 from yakut.util import EXIT_CODE_UNSUCCESSFUL
 
-from . import _ls
 
 
 def pass_file_client(f):

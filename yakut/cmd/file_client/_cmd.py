@@ -180,3 +180,38 @@ async def mkdir(fc: FileClient2, path: str) -> None:
     await fc.touch(tmpfile)
     await fc.remove(tmpfile)
 
+
+@file_client.command
+@yakut.asynchronous(interrupted_ok=True)
+@pass_file_client
+@click.argument("PATH", type=str)
+async def cat(fc: pycyphal.application.file.FileClient2, path: str) -> None:
+    """
+    Write stdin to PATH on Cyphal file server at NODE-ID or write PATH on Cyphal
+    file server at NODE-ID to stdout.
+    \b
+
+    This command is inspired by the commandline tool "cat", but does not quite
+    work like it.
+
+    If stdin is a tty, the cat command writes the contents of the file at PATH
+    on the Cyphal file server at NODE-ID to stdout. Unless PATH exists and PATH
+    is a file, the command fails.
+
+    If stdin is not a tty (i.e. a pipe), the cat command writes input from stdin
+    to PATH on the Cyphal file server at NODE-ID. If PATH exists and is a file,
+    PATH is overwritten with the new data. If PATH is a directory, the command
+    fails. After stdin is exhausted, PATH is truncated to its new length.
+
+    Writing to stdout has precedence over piped-in data.
+    """
+    if sys.stdin.isatty():
+        data = await fc.read(path)
+        print(data.decode("utf-8"), end="")
+    else:
+        await fc.touch(path)
+        offset = (await fc.get_info(path)).size
+        while chunk := sys.stdin.buffer.read(fc.data_transfer_capacity):
+            await fc.write(path, chunk, offset=offset, truncate=False)
+            offset += fc.data_transfer_capacity
+        await fc.write(path, b"", offset=offset, truncate=False)

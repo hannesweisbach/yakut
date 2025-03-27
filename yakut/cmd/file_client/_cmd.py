@@ -17,6 +17,7 @@ from yakut.main import AliasedGroup
 from yakut.ui import show_error
 from yakut.util import EXIT_CODE_UNSUCCESSFUL
 
+from . import _ls
 
 
 def pass_file_client(f):
@@ -214,3 +215,42 @@ async def cat(fc: pycyphal.application.file.FileClient2, path: str) -> None:
             await fc.write(path, chunk, offset=offset, truncate=False)
             offset += fc.data_transfer_capacity
         await fc.write(path, b"", offset=offset, truncate=False)
+
+
+@file_client.command()
+@yakut.asynchronous(interrupted_ok=True)
+@pass_file_client
+@yakut.pass_purser
+@click.argument("PATH", default="/")
+@click.option("--long", "-l", is_flag=True, default=False, flag_value=True)
+async def ls(purser: yakut.Purser, fc: FileClient2, path: str, long: bool) -> None:
+    """
+    List directory contents or file name.
+    \b
+
+    The ls command lists the contents of PATH, if PATH is a directory.
+
+    The long option also prints file type, access controls and file size.
+    If the long options is not given, the output is formatted according to the global --format option.
+
+    If PATH is not given, it defaults to /.
+    """
+    await _ls.do_ls(purser, fc, path, long)
+
+
+@file_client.command()
+@yakut.asynchronous(interrupted_ok=True)
+@pass_file_client
+@yakut.pass_purser
+@click.argument("PATH", default="/")
+@click.option("--long", "-l", is_flag=True, default=False, flag_value=True)
+async def tree(*args, **kwargs) -> None:
+    """
+    List contents of directories in a tree-like format.
+    \b
+    
+    The tree command is inspired by the tree command line utility, recursively
+    listing directory contents of the Cyphal file server at NODE-ID, starting
+    from directory PATH. If not specified, PATH defaults to /.
+    """
+    await _ls.do_tree(*args, **kwargs)

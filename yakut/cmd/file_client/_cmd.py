@@ -18,6 +18,7 @@ from yakut.ui import show_error
 from yakut.util import EXIT_CODE_UNSUCCESSFUL
 
 from . import _ls
+from . import _rcpy
 
 
 def pass_file_client(f):
@@ -254,3 +255,25 @@ async def tree(*args, **kwargs) -> None:
     from directory PATH. If not specified, PATH defaults to /.
     """
     await _ls.do_tree(*args, **kwargs)
+
+
+@file_client.command(aliases=("rcopy","rcp"))
+@click.argument("SRC", type=str)
+@click.argument("DST", type=str)
+@yakut.asynchronous(interrupted_ok=True)
+async def remote_copy(src: str, dst: str) -> None:
+    """
+    Copy a file to/from a Cyphal file server.
+    \b
+
+    This command is akin to the scp command and copies a file from SRC to DST.
+
+    The remote-copy command uses the URI scheme cf:// (cyphal file) to specify
+    both Cyphal node id of a Cyphal file server and its path. 
+
+    SRC and DST are interpreted as local file path, unless they start with
+    cf://. SRC and DST can be an arbitrary combination of local path names and
+    cf:// URI schemes. Thus, files can be copied on the local file system as
+    well as between two Cyphal nodes with file server services.
+    """
+    await _rcpy.rcopy(src, dst)

@@ -110,3 +110,20 @@ async def _unittest_modify2(transport_factory: TransportFactory, fileserver_fact
         assert not testfile2.fs_path.exists()
 
 
+@pytest.mark.asyncio
+async def _unittest_mkdir(transport_factory: TransportFactory, fileserver_factory: FileServerFactory):
+    fs_node_id = 11
+    environment_variables = {
+        **transport_factory(100).environment,
+        "YAKUT_PATH": str(OUTPUT_DIR),
+    }
+    with fileserver_factory(fs_node_id, transport_factory) as fs:
+        fc = FileClient(fs_node_id, environment_variables)
+        testdir = RemoteFilePath("/path/to/directory", fs.root)
+
+        assert not testdir.fs_path.exists()
+
+        fc("mkdir", testdir.path)
+
+        assert testdir.fs_path.is_dir()
+

@@ -23,6 +23,7 @@ def execute(
     environment_variables: typing.Optional[typing.Dict[str, str]] = None,
     log: bool = True,
     ensure_success: bool = True,
+    input : str | None = None,
 ) -> typing.Tuple[int, str, str]:
     r"""
     This is a wrapper over :func:`subprocess.check_output`.
@@ -58,12 +59,13 @@ def execute(
                 env=env,
                 stdout=stdout_file,
                 stderr=stderr_file,
+                input=input,
             )
             stdout = _read_stream(stdout_file)
             stderr = _read_stream(stderr_file)
     if log:
-        _logger.debug("%s stdout:\n%s", cmd, stdout)
-        _logger.debug("%s stderr:\n%s", cmd, stderr)
+        _logger.info("%s stdout:\n%s", cmd, stdout)
+        _logger.info("%s stderr:\n%s", cmd, stderr)
     if out.returncode != 0 and ensure_success:
         raise CalledProcessError(out.returncode, cmd, stdout, stderr)
     assert isinstance(stdout, str) and isinstance(stderr, str)
@@ -76,6 +78,7 @@ def execute_cli(
     environment_variables: typing.Optional[typing.Dict[str, str]] = None,
     log: bool = True,
     ensure_success: bool = True,
+    input: str | None = None,
 ) -> typing.Tuple[int, str, str]:
     """
     A wrapper over :func:`execute` that runs the CLI tool with the specified arguments.
@@ -225,6 +228,7 @@ _ENV_COPY_KEYS = {
     "PROGRAMDATA",
     "ALLUSERSPROFILE",
     "PUBLIC",
+    "CYPHAL_PATH"
 }
 
 

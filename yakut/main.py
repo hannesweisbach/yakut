@@ -277,13 +277,13 @@ def main() -> None:  # https://click.palletsprojects.com/en/8.1.x/exceptions/
         finally:
             click.secho("", err=True, nl=False)
 
-    except Exception as ex:  # pylint: disable=broad-except
-        show_error(f"{type(ex).__name__}: {ex}")
-        _logger.debug("EXCEPTION %s: %s", type(ex).__name__, ex, exc_info=True)
+    #except Exception as ex:  # pylint: disable=broad-except
+    #    show_error(f"{type(ex).__name__}: {ex}")
+    #    _logger.debug("EXCEPTION %s: %s", type(ex).__name__, ex, exc_info=True)
 
-    except BaseException as ex:  # pylint: disable=broad-except
-        show_error(f"Internal error, please report: {ex}")
-        _logger.error("%s: %s", type(ex).__name__, ex, exc_info=True)
+    #except BaseException as ex:  # pylint: disable=broad-except
+    #    show_error(f"Internal error, please report: {ex}")
+    #    _logger.error("%s: %s", type(ex).__name__, ex, exc_info=True)
 
     _logger.debug("EXIT %r", status)
     sys.exit(status)
@@ -291,9 +291,9 @@ def main() -> None:  # https://click.palletsprojects.com/en/8.1.x/exceptions/
 
 subcommand: Callable[..., Callable[..., Any]] = _click_main.command  # type: ignore
 
-
 def asynchronous(*, interrupted_ok: bool = False) -> Callable[[Callable[..., Awaitable[Any]]], Callable[..., Any]]:
     def impl(f: Callable[..., Awaitable[Any]]) -> Callable[..., Any]:
+        print(f"asyncronous: {f}")
         def handle_task_exception(_loop: asyncio.AbstractEventLoop, context: dict[str, Any]) -> None:
             message = context.get("message", "Unhandled exception in event loop")
             exc = context.get("exception")
@@ -306,10 +306,13 @@ def asynchronous(*, interrupted_ok: bool = False) -> Callable[[Callable[..., Awa
         # know about these errors as they are unlikely to affect the behavior of the application.
         # See https://github.com/OpenCyphal/yakut/issues/40
         def proxy(*args: Any, **kwargs: Any) -> Any:
+            print(f"proxy: {f}")
             loop = asyncio.new_event_loop()
             try:
                 asyncio.set_event_loop(loop)
-                return loop.run_until_complete(f(*args, **kwargs))
+                aw = loop.run_until_complete(f(*args, **kwargs))
+                print(f"proxy: {f} done")
+                return aw
             except KeyboardInterrupt:
                 if not interrupted_ok:
                     raise
@@ -333,6 +336,7 @@ def asynchronous(*, interrupted_ok: bool = False) -> Callable[[Callable[..., Awa
                 finally:
                     asyncio.set_event_loop(None)
                     loop.close()
+            print(f"proxy: {f} done")
 
         return functools.update_wrapper(proxy, f)
 

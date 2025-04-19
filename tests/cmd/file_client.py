@@ -194,6 +194,21 @@ async def _unittest_ls(transport_factory: TransportFactory, fileserver_factory: 
         assert len(filelist) == 1
         assert testfile.path in filelist
 
+@pytest.mark.asyncio
+async def _unittest_tree(transport_factory: TransportFactory, fileserver_factory: FileServerFactory):
+    fs_node_id = 11
+    environment_variables = {
+        **transport_factory(100).environment,
+        "YAKUT_PATH": str(OUTPUT_DIR),
+    }
+
+    with fileserver_factory(fs_node_id, transport_factory) as fs:
+        fc = FileClient(fs_node_id, environment_variables)
+
+        # read / by default, if no path given
+        exitcode, readback, _ = fc("tree")
+        assert exitcode == 0
+
 # TODO:
 # ls
 # rcpy

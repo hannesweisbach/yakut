@@ -1,6 +1,5 @@
 import contextlib
 from dataclasses import dataclass
-import functools
 import pathlib
 import pytest
 import shutil

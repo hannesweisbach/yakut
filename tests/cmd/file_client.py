@@ -193,3 +193,7 @@ async def _unittest_ls(transport_factory: TransportFactory, fileserver_factory: 
         assert isinstance(filelist, list)
         assert len(filelist) == 1
         assert testfile.path in filelist
+
+# TODO:
+# ls
+# rcpy

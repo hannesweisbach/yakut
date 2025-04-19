@@ -1,5 +1,6 @@
 import contextlib
 from dataclasses import dataclass
+import json
 import pathlib
 import pytest
 import random
@@ -162,3 +163,33 @@ async def _unittest_cat(transport_factory: TransportFactory, fileserver_factory:
         assert exitcode == 0
 
         #assert readback == contents
+
+@pytest.mark.asyncio
+async def _unittest_ls(transport_factory: TransportFactory, fileserver_factory: FileServerFactory):
+    fs_node_id = 11
+    environment_variables = {
+        **transport_factory(100).environment,
+        "YAKUT_PATH": str(OUTPUT_DIR),
+    }
+
+    with fileserver_factory(fs_node_id, transport_factory) as fs:
+        fc = FileClient(fs_node_id, environment_variables)
+
+        # read / by default, if no path given
+        exitcode, readback, _ = fc("ls")
+        assert exitcode == 0
+        filelist = json.loads(readback)
+        # maybe not a good idea?
+        assert isinstance(filelist, list)
+        assert len(filelist) == 0
+
+        testfile = RemoteFilePath("/path/to/file", fs.root)
+        testfile.fs_path.touch()
+
+        exitcode, readback, _ = fc("ls")
+        assert exitcode == 0
+        filelist = json.loads(readback)
+        # maybe not a good idea?
+        assert isinstance(filelist, list)
+        assert len(filelist) == 1
+        assert testfile.path in filelist

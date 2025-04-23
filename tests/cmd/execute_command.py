@@ -88,18 +88,33 @@ async def _unittest_basic(_context: tuple[Runner, tuple[Remote, Remote]]) -> Non
 
     run, (remote_10, remote_11) = _context
 
+    def check_output(output: dict, expected: dict):
+        # check for exact number of nodes
+        assert output.keys() == expected.keys()
+        for nodeid, opts in expected.items():
+            # but allow additional, optional output, such as the 'output' key.
+            if opts is None:
+                assert output[nodeid] is None
+            else:
+                assert set(opts.items()) <= set(output[nodeid].items())
+
     # SUCCESS
     remote_10.next_response = ExecuteCommand_1.Response(status=0)
     remote_11.next_response = ExecuteCommand_1.Response(status=0)
-    assert await run("10-12", "restart", "--timeout=3") == (
-        0,
+    rc, output = await run("10-12", "restart", "--timeout=3")
+    assert rc == 0
+    check_output(
+        output,
         {
             "10": {"status": 0},
             "11": {"status": 0},
         },
     )
-    assert await run("10-12", "111", "COMMAND ARGUMENT", "--timeout=3") == (
-        0,
+
+    rc, output = await run("10-12", "111", "COMMAND ARGUMENT", "--timeout=3")
+    assert rc == 0
+    check_output(
+        output,
         {
             "10": {"status": 0},
             "11": {"status": 0},
@@ -119,15 +134,20 @@ async def _unittest_basic(_context: tuple[Runner, tuple[Remote, Remote]]) -> Non
     # REMOTE ERROR; PROPAGATED AND IGNORED
     remote_10.next_response = ExecuteCommand_1.Response(status=100)
     remote_11.next_response = ExecuteCommand_1.Response(status=200)
-    assert await run("10-12", "restart", "--timeout=3") == (
-        EXIT_CODE_UNSUCCESSFUL,
+    rc, output = await run("10-12", "restart", "--timeout=3")
+    assert rc == EXIT_CODE_UNSUCCESSFUL
+    check_output(
+        output,
         {
             "10": {"status": 100},
             "11": {"status": 200},
         },
     )
-    assert await run("10-12", "123", "--expect=100,200", "--timeout=3") == (
-        0,
+
+    rc, output = await run("10-12", "123", "--expect=100,200", "--timeout=3")
+    assert rc == 0
+    check_output(
+        output,
         {
             "10": {"status": 100},
             "11": {"status": 200},
@@ -139,15 +159,20 @@ async def _unittest_basic(_context: tuple[Runner, tuple[Remote, Remote]]) -> Non
     # ONE TIMED OUT; ERROR PROPAGATED AND IGNORED
     remote_10.next_response = None
     remote_11.next_response = ExecuteCommand_1.Response(status=0)
-    assert await run("10-12", "123", "--timeout=3") == (
-        EXIT_CODE_UNSUCCESSFUL,
+    rc, output = await run("10-12", "123", "--timeout=3")
+    assert rc == EXIT_CODE_UNSUCCESSFUL
+    check_output(
+        output,
         {
             "10": None,
             "11": {"status": 0},
         },
     )
-    assert await run("10-12", "123", "--expect") == (
-        0,
+
+    rc, output = await run("10-12", "123", "--expect")
+    assert rc == 0
+    check_output(
+        output,
         {
             "10": None,
             "11": {"status": 0},
@@ -156,19 +181,18 @@ async def _unittest_basic(_context: tuple[Runner, tuple[Remote, Remote]]) -> Non
 
     # FLAT OUTPUT (NOT GROUPED BY NODE-ID)
     remote_11.next_response = ExecuteCommand_1.Response(status=210)
-    assert await run("11", "123", "FOO BAR", "--timeout=3") == (
-        EXIT_CODE_UNSUCCESSFUL,
-        {"status": 210},
-    )
+    rc, output = await run("11", "123", "FOO BAR", "--timeout=3")
+    assert rc == EXIT_CODE_UNSUCCESSFUL
+    assert set({"status": 210}.items()) <= set(output.items())
     assert (
         remote_11.last_request
         and remote_11.last_request.command == 123
         and remote_11.last_request.parameter.tobytes().decode() == "FOO BAR"
     )
-    assert await run("11", "222", "--timeout=3", "--expect=0..256") == (
-        0,
-        {"status": 210},
-    )
+
+    rc, output = await run("11", "222", "--timeout=3", "--expect=0..256")
+    assert rc == 0
+    assert set({"status": 210}.items()) <= set(output.items())
     assert (
         remote_11.last_request
         and remote_11.last_request.command == 222
